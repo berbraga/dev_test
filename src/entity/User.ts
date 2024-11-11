@@ -1,10 +1,11 @@
+import "reflect-metadata";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { Post } from "./Post";
 
 @Entity("user")
 export class User {
   @PrimaryGeneratedColumn()
-  id!: number; // Adicionando o operador "!" para sinalizar inicialização pelo TypeORM
+  id!: number;
 
   @Column({ type: "varchar", length: 100, nullable: false })
   firstName!: string;
@@ -12,8 +13,8 @@ export class User {
   @Column({ type: "varchar", length: 100, nullable: false })
   lastName!: string;
 
-  @Column({ type: "varchar", length: 100, nullable: false })
-  email!: string;
+  @Column({ type: "varchar", length: 100, nullable: false, unique: true })
+  email!: string;  // Restrições de unicidade adicionada
 
   @OneToMany(() => Post, (post) => post.user)
   posts!: Post[];

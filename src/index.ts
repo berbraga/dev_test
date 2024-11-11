@@ -12,9 +12,9 @@ const AppDataSource = new DataSource({
   host: process.env.DB_HOST || "localhost",
   port: 3306,
   username: process.env.DB_USER || "root",
-  password: process.env.DB_PASSWORD || "password",
+  password: process.env.DB_PASSWORD || "bernardo",
   database: process.env.DB_NAME || "test_db",
-  entities: [User,Post],
+  entities: [User, Post],
   synchronize: true,
 });
 
@@ -34,11 +34,46 @@ const initializeDatabase = async () => {
 initializeDatabase();
 
 app.post('/users', async (req, res) => {
-// Crie o endpoint de users
+  try {
+    const { firstName, lastName, email } = req.body;
+    const userRepository = AppDataSource.getRepository(User);
+
+    const newUser = userRepository.create({ firstName, lastName, email });
+    const savedUser = await userRepository.save(newUser);
+
+    res.status(201).json(savedUser);
+  } catch (error: any) {
+    if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') { 
+      // 'ER_DUP_ENTRY' é o código de erro do MySQL para duplicatas, e '23505' é o do PostgreSQL
+      res.status(400).json({ message: "O email já está em uso. Escolha outro email." });
+    } else {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Erro ao criar usuário" });
+    }
+  }
 });
 
 app.post('/posts', async (req, res) => {
-// Crie o endpoint de posts
+  try {
+    const { title, description, userId } = req.body;
+    const postRepository = AppDataSource.getRepository(Post);
+    const userRepository = AppDataSource.getRepository(User);
+
+    // Verifica se o usuário existe
+    const user = await userRepository.findOneBy({ id: userId });
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
+    }
+
+    // Se o usuário for encontrado, cria o novo post
+    const newPost = postRepository.create({ title, description, user });
+    const savedPost = await postRepository.save(newPost);
+
+    res.status(201).json(savedPost);
+  } catch (error) {
+    console.error("Erro ao criar post:", error);
+    res.status(500).json({ message: "Erro ao criar post." });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
