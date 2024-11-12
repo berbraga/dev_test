@@ -44,7 +44,7 @@ app.post('/users', async (req, res) => {
     res.status(201).json(savedUser);
   } catch (error: any) {
     if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') { 
-      // 'ER_DUP_ENTRY' é o código de erro do MySQL para duplicatas, e '23505' é o do PostgreSQL
+   
       res.status(400).json({ message: "O email já está em uso. Escolha outro email." });
     } else {
       console.error("Error creating user:", error);
@@ -59,13 +59,13 @@ app.post('/posts', async (req, res) => {
     const postRepository = AppDataSource.getRepository(Post);
     const userRepository = AppDataSource.getRepository(User);
 
-    // Verifica se o usuário existe
+   
     const user = await userRepository.findOneBy({ id: userId });
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
     }
 
-    // Se o usuário for encontrado, cria o novo post
+   
     const newPost = postRepository.create({ title, description, user });
     const savedPost = await postRepository.save(newPost);
 
@@ -75,11 +75,9 @@ app.post('/posts', async (req, res) => {
     res.status(500).json({ message: "Erro ao criar post." });
   }
 });
+ 
 
-
-// ========================================================
-
-// Endpoint para listar todos os usuários com seus posts
+// Endpoint para listar todos os usuários 
 app.get('/users', async (req, res) => {
   try {
     const userRepository = AppDataSource.getRepository(User);
@@ -92,20 +90,20 @@ app.get('/users', async (req, res) => {
   }
 });
 
-// Endpoint para listar todos os posts de um usuário específico
+// Endpoint para listar todos os posts 
 app.get('/users/:userId/posts', async (req, res) => {
   try {
     const { userId } = req.params;
     const postRepository = AppDataSource.getRepository(Post);
     const userRepository = AppDataSource.getRepository(User);
 
-    // Verifica se o usuário existe
+    
     const user = await userRepository.findOneBy({ id: parseInt(userId) });
     if (!user) {
       return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
     }
 
-    // Busca todos os posts do usuário
+     
     const posts = await postRepository.find({
       where: { user: { id: parseInt(userId) } },
     });
@@ -113,6 +111,153 @@ app.get('/users/:userId/posts', async (req, res) => {
   } catch (error) {
     console.error("Erro ao buscar posts do usuário:", error);
     res.status(500).json({ message: "Erro ao buscar posts do usuário." });
+  }
+});
+
+app.get('/posts/all', async (req, res) => {
+  try {
+    const postRepository = AppDataSource.getRepository(Post);
+    const posts = await postRepository.find({ relations: ["user"] });  
+
+    res.status(200).json(posts); // Retorna   posts
+  } catch (error) {
+    console.error("Erro ao buscar posts:", error);
+    res.status(500).json({ message: "Erro ao buscar posts." });
+  }
+});
+
+app.put('/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { firstName, lastName, email } = req.body;
+    const userRepository = AppDataSource.getRepository(User);
+
+ 
+    const user = await userRepository.findOneBy({ id: parseInt(userId) });
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
+    }
+
+   
+    user.firstName = firstName ?? user.firstName;
+    user.lastName = lastName ?? user.lastName;
+    user.email = email ?? user.email;
+
+    const updatedUser = await userRepository.save(user);
+    res.status(200).json(updatedUser);
+  } catch (error: any) {
+    if (error.code === 'ER_DUP_ENTRY' || error.code === '23505') {
+      res.status(400).json({ message: "O email já está em uso. Escolha outro email." });
+    } else {
+      console.error("Erro ao atualizar usuário:", error);
+      res.status(500).json({ message: "Erro ao atualizar usuário." });
+    }
+  }
+});
+
+// ========== Endpoint PUT  ==========
+app.put('/posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { title, description, userId } = req.body;
+    const postRepository = AppDataSource.getRepository(Post);
+    const userRepository = AppDataSource.getRepository(User);
+
+   
+    const post = await postRepository.findOneBy({ id: parseInt(postId) });
+    if (!post) {
+      return res.status(404).json({ message: "Post não encontrado com o ID fornecido." });
+    }
+
+   
+    if (userId) {
+      const user = await userRepository.findOneBy({ id: userId });
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
+      }
+      post.user = user;
+    }
+
+ 
+    post.title = title ?? post.title;
+    post.description = description ?? post.description;
+
+    const updatedPost = await postRepository.save(post);
+    res.status(200).json(updatedPost);
+  } catch (error) {
+    console.error("Erro ao atualizar post:", error);
+    res.status(500).json({ message: "Erro ao atualizar post." });
+  }
+});
+
+app.delete('/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userRepository = AppDataSource.getRepository(User);
+
+     
+    const user = await userRepository.findOneBy({ id: parseInt(userId) });
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
+    }
+    await userRepository.remove(user);
+    res.status(200).json({ message: "Usuário excluído com sucesso." });
+  } catch (error) {
+    console.error("Erro ao excluir usuário:", error);
+    res.status(500).json({ message: "Erro ao excluir usuário." });
+  }
+});
+
+app.put('/posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { title, description, userId } = req.body;
+    const postRepository = AppDataSource.getRepository(Post);
+    const userRepository = AppDataSource.getRepository(User);
+
+   
+    const post = await postRepository.findOneBy({ id: parseInt(postId) });
+    if (!post) {
+      return res.status(404).json({ message: "Post não encontrado com o ID fornecido." });
+    }
+
+   
+    if (userId) {
+      const user = await userRepository.findOneBy({ id: userId });
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
+      }
+      post.user = user;  
+    }
+ 
+    post.title = title ?? post.title;
+    post.description = description ?? post.description;
+
+     
+    const updatedPost = await postRepository.save(post);
+    res.status(200).json(updatedPost);  
+  } catch (error) {
+    console.error("Erro ao atualizar post:", error);
+    res.status(500).json({ message: "Erro ao atualizar post." });
+  }
+});
+
+// ========== Endpoint DELETE  post ==========
+app.delete('/posts/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const postRepository = AppDataSource.getRepository(Post);
+ 
+    const post = await postRepository.findOneBy({ id: parseInt(postId) });
+    if (!post) {
+      return res.status(404).json({ message: "Post não encontrado com o ID fornecido." });
+    }
+ 
+    await postRepository.remove(post);
+    res.status(200).json({ message: "Post excluído com sucesso." });
+  } catch (error) {
+    console.error("Erro ao excluir post:", error);
+    res.status(500).json({ message: "Erro ao excluir post." });
   }
 });
 
