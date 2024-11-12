@@ -76,6 +76,48 @@ app.post('/posts', async (req, res) => {
   }
 });
 
+
+// ========================================================
+
+// Endpoint para listar todos os usuários com seus posts
+app.get('/users', async (req, res) => {
+  try {
+    const userRepository = AppDataSource.getRepository(User);
+    console.log("Buscando usuários...");
+    const users = await userRepository.find({ relations: ["posts"] }); 
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Erro ao buscar usuários:", error);
+    res.status(500).json({ message: "Erro ao buscar usuários." });
+  }
+});
+
+// Endpoint para listar todos os posts de um usuário específico
+app.get('/users/:userId/posts', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const postRepository = AppDataSource.getRepository(Post);
+    const userRepository = AppDataSource.getRepository(User);
+
+    // Verifica se o usuário existe
+    const user = await userRepository.findOneBy({ id: parseInt(userId) });
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado com o ID fornecido." });
+    }
+
+    // Busca todos os posts do usuário
+    const posts = await postRepository.find({
+      where: { user: { id: parseInt(userId) } },
+    });
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error("Erro ao buscar posts do usuário:", error);
+    res.status(500).json({ message: "Erro ao buscar posts do usuário." });
+  }
+});
+
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
