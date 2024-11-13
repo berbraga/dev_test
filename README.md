@@ -57,3 +57,6 @@ Execute os seguintes comandos para testar a aplicação:
    ```
 
 ## 6º Passo: Crie um fork desse repositório e submita o código preenchido nele.
+
+
+loom: https://www.loom.com/share/4a37a9a29c3a405498dcda96141c2e72
