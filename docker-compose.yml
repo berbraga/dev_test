@@ -1,29 +1,41 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  api:
-    build: .
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_app
+    restart: always
     ports:
       - "3000:3000"
     environment:
-      - DB_HOST=db
-      - DB_USER=root
-      - DB_PASSWORD=password
-      - DB_NAME=test_db
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: password
+      DB_NAME: test_db
     depends_on:
       - db
-
+    networks:
+      - app-network
 
   db:
-    image: mysql:8.0
+    image: mysql:8
+    container_name: mysql_db
+    restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=password
-      - MYSQL_DATABASE=test_db
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: test_db
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
-      - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - app-network
 
 volumes:
-  mysql-data:
+  db-data:
+
+networks:
+  app-network: {}
